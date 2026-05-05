@@ -47,9 +47,23 @@ def curba_anuala(an: int) -> pd.DataFrame:
     nr_zile = (date(an + 1, 1, 1) - inceput).days
     zile = [inceput + timedelta(days=i) for i in range(nr_zile)]
     secunde = [int(calculeaza(z).durata.total_seconds()) for z in zile]
+    sec_prev = int(calculeaza(inceput - timedelta(days=1)).durata.total_seconds())
+    delta_sec = [s - (secunde[i - 1] if i > 0 else sec_prev) for i, s in enumerate(secunde)]
     ore = [s / 3600 for s in secunde]
     ore_hhmm = [f"{s // 3600}:{(s % 3600) // 60:02d}" for s in secunde]
-    return pd.DataFrame({"data": zile, "ore": ore, "ore_hhmm": ore_hhmm})
+    delta_min = [d / 60 for d in delta_sec]
+    delta_str = [
+        f"{'+' if d >= 0 else '-'}{abs(d) // 60}:{abs(d) % 60:02d}" for d in delta_sec
+    ]
+    return pd.DataFrame(
+        {
+            "data": zile,
+            "ore": ore,
+            "ore_hhmm": ore_hhmm,
+            "delta_min": delta_min,
+            "delta_str": delta_str,
+        }
+    )
 
 
 df = curba_anuala(zi.year)
@@ -80,7 +94,30 @@ punct = (
 )
 
 st.subheader(f"Curba anuală {zi.year}")
-st.altair_chart(linia + punct, width="stretch")
+afiseaza_var = st.checkbox("Arată variația zilnică (min/zi)", value=False)
+
+if afiseaza_var:
+    linia_var = (
+        alt.Chart(df)
+        .mark_line(color="#0ea5e9")
+        .encode(
+            x="data:T",
+            y=alt.Y(
+                "delta_min:Q",
+                title="Variație (min/zi)",
+                axis=alt.Axis(orient="right"),
+            ),
+            tooltip=[
+                alt.Tooltip("data:T", title="Data"),
+                alt.Tooltip("delta_str:N", title="Variație"),
+            ],
+        )
+    )
+    chart = alt.layer(alt.layer(linia, punct), linia_var).resolve_scale(y="independent")
+else:
+    chart = linia + punct
+
+st.altair_chart(chart, width="stretch")
 
 
 def minute_din_miezul_noptii(dt) -> float:

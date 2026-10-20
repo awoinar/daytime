@@ -17,7 +17,13 @@ uv run daytime.py 2026-12-25    # CLI for a specific date (YYYY-MM-DD)
 uv run streamlit run app.py     # launch the Streamlit UI
 ```
 
-There is no test suite, linter config, or build step.
+There is no test suite or linter config.
+
+## Container
+
+`Dockerfile` builds the app image: Python 3.12, dependencies from `uv.lock`, Streamlit on port 8501, `TZ=Europe/Bucharest` so `date.today()` is the Bucharest date. `.dockerignore` is an allowlist: a new source file must be added both there and to the `COPY` line, or the image won't contain it.
+
+On every push to `main`, `.github/workflows/build.yml` builds the image for `linux/arm64` and pushes it to `ghcr.io/awoinar/daytime`, tagged `latest` and `sha-<short commit>`. Deploying is a separate, manual step on the server `bebop`, described in the `hetzner` repo (`daytime.md`).
 
 ## Architecture
 

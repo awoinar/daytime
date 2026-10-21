@@ -14,7 +14,22 @@ def hhmm(td: timedelta) -> str:
     return f"{semn}{abs_min // 60}h {abs_min % 60:02d}m"
 
 
+# Streamlit uses desktop font sizes on phones too. 640px is its own phone breakpoint.
+# The root font size is left alone: the date input must stay at 16px, or iOS Safari
+# zooms the page when it gets focus. The 4.5rem top padding clears the 3.75rem header.
+STIL_MOBIL = """
+<style>
+@media (max-width: 640px) {
+    [data-testid="stMainBlockContainer"] { padding-top: 4.5rem; }
+    [data-testid="stHeading"] h1 { font-size: 1.75rem; }
+    [data-testid="stHeading"] h3 { font-size: 1.25rem; }
+    [data-testid="stMetricValue"] { font-size: 1.75rem; }
+}
+</style>
+"""
+
 st.set_page_config(page_title="Daylight — București", page_icon="☀️", layout="centered")
+st.html(STIL_MOBIL)
 st.title("☀️ Daylight — București")
 
 zi = st.date_input("Alege ziua", value=date.today(), format="YYYY-MM-DD")

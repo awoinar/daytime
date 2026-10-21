@@ -9,6 +9,11 @@ permissions:
   contents: read
   packages: write
 
+# One run at a time, so an older build can't re-tag `latest` after a newer one and get deployed.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 jobs:
   image:
     # The server is ARM; a native ARM runner avoids slow emulated builds.
@@ -39,3 +44,28 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    needs: image
+    runs-on: ubuntu-24.04
+    permissions: {}
+    steps:
+      # The key's authorized_keys entry forces /opt/daytime/deploy.sh, whatever command is sent.
+      # The script prints the commit the server is now running.
+      - name: Deploy to bebop
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          running=$(ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes -o ConnectTimeout=15 "root@$DEPLOY_HOST" deploy)
+          echo "Running on bebop: $running"
+          if [ "$running" != "$GITHUB_SHA" ]; then
+            echo "::error::bebop runs $running, expected $GITHUB_SHA. Is image: pinned to a sha- tag?"
+            exit 1
+          fi

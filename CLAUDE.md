@@ -23,7 +23,7 @@ There is no test suite or linter config.
 
 `Dockerfile` builds the app image: Python 3.12, dependencies from `uv.lock`, Streamlit on port 8501, `TZ=Europe/Bucharest` so `date.today()` is the Bucharest date. `.dockerignore` is an allowlist: a new source file must be added both there and to the `COPY` line, or the image won't contain it.
 
-On every push to `main`, `.github/workflows/build.yml` builds the image for `linux/arm64` and pushes it to `ghcr.io/awoinar/daytime`, tagged `latest` and `sha-<short commit>`. Deploying is a separate, manual step on the server `bebop`, described in the `hetzner` repo (`daytime.md`).
+On every push to `main`, `.github/workflows/build.yml` builds the image for `linux/arm64` and pushes it to `ghcr.io/awoinar/daytime`, tagged `latest` and `sha-<short commit>`. Its `deploy` job then logs into the server `bebop` over SSH, which runs `/opt/daytime/deploy.sh` (pull, restart, prune), and fails unless the server reports the pushed commit. So a push to `main` goes live within about a minute. The key, secrets and rollback are described in the `hetzner` repo (`daytime.md`).
 
 ## Architecture
 

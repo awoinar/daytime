@@ -4,7 +4,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-from daytime import ORAS_IMPLICIT, ORASE, calculeaza
+from daytime import ORAS_IMPLICIT, ORASE, calculeaza, ore_min
 
 COOKIE_ORAS = "oras"
 
@@ -56,8 +56,6 @@ info = calculeaza(zi, oras)
 st.set_page_config(page_title=f"Daylight — {oras.name}")
 titlu.title(f"☀️ Daylight — {oras.name}")
 
-ore = info.durata.seconds // 3600
-minute = (info.durata.seconds % 3600) // 60
 dif_sec_ieri = int(info.dif_fata_de_ieri.total_seconds())
 abs_sec_ieri = abs(dif_sec_ieri)
 semn_ieri = "+" if dif_sec_ieri >= 0 else "-"
@@ -68,13 +66,28 @@ c1.metric("Răsărit", info.rasarit.strftime("%H:%M"))
 c2.metric("Apus", info.apus.strftime("%H:%M"))
 c3.metric(
     "Lungime zi",
-    f"{ore}h {minute}min",
+    ore_min(info.durata),
     delta=f"{delta_ieri_str} față de ieri",
 )
 
 c4, c5 = st.columns(2)
-c4.metric("Față de 21 iun", hhmm(info.dif_fata_de_solst_vara))
-c5.metric("Față de 21 dec", hhmm(info.dif_fata_de_solst_iarna))
+# The delta slot holds the solstice day's own length; grey with no arrow, since it isn't a change.
+c4.metric(
+    "Față de 21 iun",
+    hhmm(info.dif_fata_de_solst_vara),
+    delta=ore_min(info.durata_solst_vara),
+    delta_color="off",
+    delta_arrow="off",
+    delta_description="cea mai lungă zi",
+)
+c5.metric(
+    "Față de 21 dec",
+    hhmm(info.dif_fata_de_solst_iarna),
+    delta=ore_min(info.durata_solst_iarna),
+    delta_color="off",
+    delta_arrow="off",
+    delta_description="cea mai scurtă zi",
+)
 
 
 @st.cache_data(show_spinner="Calculez curba anuală…")

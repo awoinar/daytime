@@ -23,6 +23,13 @@ class InfoZi:
     dif_fata_de_ieri: timedelta
     dif_fata_de_solst_vara: timedelta
     dif_fata_de_solst_iarna: timedelta
+    durata_solst_vara: timedelta
+    durata_solst_iarna: timedelta
+
+
+def ore_min(td: timedelta) -> str:
+    total_min = int(td.total_seconds() // 60)
+    return f"{total_min // 60}h {total_min % 60}min"
 
 
 def calculeaza(data: date, oras: LocationInfo) -> InfoZi:
@@ -47,13 +54,13 @@ def calculeaza(data: date, oras: LocationInfo) -> InfoZi:
         dif_fata_de_ieri=durata - durata_ieri,
         dif_fata_de_solst_vara=durata - max_durata,
         dif_fata_de_solst_iarna=durata - min_durata,
+        durata_solst_vara=max_durata,
+        durata_solst_iarna=min_durata,
     )
 
 
 def info_zi(data: date, oras: LocationInfo):
     info = calculeaza(data, oras)
-    ore = info.durata.seconds // 3600
-    minute = (info.durata.seconds % 3600) // 60
 
     dif_sec = int(info.dif_fata_de_ieri.total_seconds())
     abs_sec = abs(dif_sec)
@@ -64,10 +71,12 @@ def info_zi(data: date, oras: LocationInfo):
     print(f"\n=== {info.data.strftime('%d %B %Y')} - {oras.name} ===")
     print(f"Răsărit: {info.rasarit:%H:%M}")
     print(f"Apus: {info.apus:%H:%M}")
-    print(f"Lungime: {ore}h {minute}min")
+    print(f"Lungime: {ore_min(info.durata)}")
     print(f"Față de ieri: {semn}{dif_min} min, {dif_rem} secunde")
-    print(f"Față de ziua max 21 iun: {int(info.dif_fata_de_solst_vara.total_seconds() // 60)} min")
-    print(f"Față de ziua min 21 dec: +{int(info.dif_fata_de_solst_iarna.total_seconds() // 60)} min")
+    print(f"Față de ziua max 21 iun ({ore_min(info.durata_solst_vara)}): "
+          f"{int(info.dif_fata_de_solst_vara.total_seconds() // 60)} min")
+    print(f"Față de ziua min 21 dec ({ore_min(info.durata_solst_iarna)}): "
+          f"+{int(info.dif_fata_de_solst_iarna.total_seconds() // 60)} min")
 
 
 if __name__ == "__main__":

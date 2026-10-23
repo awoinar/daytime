@@ -117,12 +117,8 @@ def curba_anuala(cheie_oras: str, an: int) -> pd.DataFrame:
 
 
 df = curba_anuala(cheie_oras, zi.year)
-sec_zi = int(info.durata.total_seconds())
-selectie = pd.DataFrame({
-    "data": [zi],
-    "ore": [sec_zi / 3600],
-    "ore_hhmm": [f"{sec_zi // 3600}:{(sec_zi % 3600) // 60:02d}"],
-})
+# The selected day's own row, so both dots sit exactly on their lines.
+selectie = df[df["data"] == zi]
 
 linia = (
     alt.Chart(df)
@@ -163,7 +159,21 @@ if afiseaza_var:
             ],
         )
     )
-    chart = alt.layer(alt.layer(linia, punct), linia_var).resolve_scale(y="independent")
+    punct_var = (
+        alt.Chart(selectie)
+        .mark_circle(size=160, color="#dc2626")
+        .encode(
+            x="data:T",
+            y="delta_min:Q",
+            tooltip=[
+                alt.Tooltip("data:T", title="Data"),
+                alt.Tooltip("delta_str:N", title="Variație"),
+            ],
+        )
+    )
+    chart = alt.layer(alt.layer(linia, punct), alt.layer(linia_var, punct_var)).resolve_scale(
+        y="independent"
+    )
 else:
     chart = linia + punct
 

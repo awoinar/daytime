@@ -6,6 +6,8 @@ import streamlit as st
 
 from daytime import ORAS_IMPLICIT, ORASE, calculeaza
 
+COOKIE_ORAS = "oras"
+
 
 def hhmm(td: timedelta) -> str:
     total_min = int(td.total_seconds() // 60)
@@ -32,12 +34,18 @@ st.set_page_config(page_icon="☀️", layout="centered")
 st.html(STIL_MOBIL)
 titlu = st.empty()
 
+# The cookie comes from the browser, so anything that isn't a known key falls back to București.
+# st.context.cookies is read once per page load: the cookie written at the end shows up on the next visit.
+oras_salvat = st.context.cookies.get(COOKIE_ORAS)
+if oras_salvat not in ORASE:
+    oras_salvat = ORAS_IMPLICIT
+
 chei_orase = list(ORASE)
 c_oras, c_zi = st.columns(2)
 cheie_oras = c_oras.selectbox(
     "Oraș",
     chei_orase,
-    index=chei_orase.index(ORAS_IMPLICIT),
+    index=chei_orase.index(oras_salvat),
     format_func=lambda cheie: ORASE[cheie].name,
 )
 oras = ORASE[cheie_oras]
@@ -190,3 +198,14 @@ strip = (
 
 st.subheader("Ziua într-un interval de 24h")
 st.altair_chart(strip, width="stretch")
+
+# Remembers the city for a year. cheie_oras is always a key of ORASE, never raw cookie text,
+# so it is safe to put in the script. Last on the page because a script block still takes a slot.
+# Secure only over https, so the cookie also works with a local `streamlit run`.
+st.html(
+    f"""<script>
+document.cookie = "{COOKIE_ORAS}={cheie_oras}; path=/; max-age=31536000; SameSite=Lax"
+    + (location.protocol === "https:" ? "; Secure" : "");
+</script>""",
+    unsafe_allow_javascript=True,
+)

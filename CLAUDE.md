@@ -29,6 +29,7 @@ On every push to `main`, `.github/workflows/build.yml` builds the image for `lin
 
 - `daytime.py` — core logic plus CLI. `calculeaza(data: date, oras: LocationInfo) -> InfoZi` is the **pure compute function** (no I/O); both the CLI's `info_zi()` printer and the Streamlit app consume it. The cities live here in `ORASE`, a dict from an ASCII key (`bucuresti`, `berlin`, `freiburg`) to `LocationInfo`; `ORAS_IMPLICIT` is the default. To add a city, add an entry there; the app's picker follows the dict order.
 - `app.py` — Streamlit front-end. Renders a city picker, metrics, an annual day-length curve with the selected date marked, and a 24h day/night strip (Altair charts, pandas frames). The annual curve is wrapped in `@st.cache_data` keyed on city key and year — 365 `astral` calls each, fast but worth caching.
+- The app remembers the last city in a cookie `oras` holding the city's key, kept for a year. It is read once per page load from `st.context.cookies`, so a city picked now shows up on the next visit. It is written by a `<script>` in `st.html(..., unsafe_allow_javascript=True)` at the bottom of the page. A missing or unknown value falls back to `ORAS_IMPLICIT`. Only ever put a key of `ORASE` into that script, never the raw cookie text.
 - `main.py` — unrelated `print("Hello from daytime!")` stub left over from `uv init`. Not the entry point.
 
 ## Conventions

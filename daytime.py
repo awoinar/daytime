@@ -4,7 +4,14 @@ from astral import LocationInfo
 from astral.sun import sun
 import sys
 
-oras = LocationInfo("Bucharest", "Romania", "Europe/Bucharest", 44.4268, 26.1025)
+# The keys are ASCII because the app stores the chosen one in a cookie.
+# Berlin and Freiburg coordinates are from their Wikipedia infoboxes.
+ORASE: dict[str, LocationInfo] = {
+    "bucuresti": LocationInfo("București", "România", "Europe/Bucharest", 44.4268, 26.1025),
+    "berlin": LocationInfo("Berlin", "Germania", "Europe/Berlin", 52.5200, 13.4050),
+    "freiburg": LocationInfo("Freiburg", "Germania", "Europe/Berlin", 47.9950, 7.8500),
+}
+ORAS_IMPLICIT = "bucuresti"
 
 
 @dataclass
@@ -18,7 +25,7 @@ class InfoZi:
     dif_fata_de_solst_iarna: timedelta
 
 
-def calculeaza(data: date) -> InfoZi:
+def calculeaza(data: date, oras: LocationInfo) -> InfoZi:
     s = sun(oras.observer, date=data, tzinfo=oras.timezone)
     rasarit = s['sunrise']
     apus = s['sunset']
@@ -43,8 +50,8 @@ def calculeaza(data: date) -> InfoZi:
     )
 
 
-def info_zi(data: date):
-    info = calculeaza(data)
+def info_zi(data: date, oras: LocationInfo):
+    info = calculeaza(data, oras)
     ore = info.durata.seconds // 3600
     minute = (info.durata.seconds % 3600) // 60
 
@@ -54,7 +61,7 @@ def info_zi(data: date):
     dif_rem = abs_sec % 60
     semn = '+' if dif_sec >= 0 else '-'
 
-    print(f"\n=== {info.data.strftime('%d %B %Y')} - București ===")
+    print(f"\n=== {info.data.strftime('%d %B %Y')} - {oras.name} ===")
     print(f"Răsărit: {info.rasarit:%H:%M}")
     print(f"Apus: {info.apus:%H:%M}")
     print(f"Lungime: {ore}h {minute}min")
@@ -64,12 +71,13 @@ def info_zi(data: date):
 
 
 if __name__ == "__main__":
+    oras_cli = ORASE[ORAS_IMPLICIT]
     if len(sys.argv) == 1:
-        info_zi(date.today())
+        info_zi(date.today(), oras_cli)
     else:
         try:
             data_introdusa = datetime.strptime(sys.argv[1], "%Y-%m-%d").date()
-            info_zi(data_introdusa)
+            info_zi(data_introdusa, oras_cli)
         except ValueError:
             print("Format greșit. Folosește: ziua.exe sau ziua.exe 2026-12-25")
     input("\nApasă Enter să închizi...")

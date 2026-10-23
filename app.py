@@ -1,10 +1,10 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 import altair as alt
 import pandas as pd
 import streamlit as st
 
-from daytime import calculeaza
+from daytime import ORAS_IMPLICIT, ORASE, calculeaza
 
 
 def hhmm(td: timedelta) -> str:
@@ -28,12 +28,25 @@ STIL_MOBIL = """
 </style>
 """
 
-st.set_page_config(page_title="Daylight — București", page_icon="☀️", layout="centered")
+st.set_page_config(page_icon="☀️", layout="centered")
 st.html(STIL_MOBIL)
-st.title("☀️ Daylight — București")
+titlu = st.empty()
 
-zi = st.date_input("Alege ziua", value=date.today(), format="YYYY-MM-DD")
-info = calculeaza(zi)
+chei_orase = list(ORASE)
+c_oras, c_zi = st.columns(2)
+cheie_oras = c_oras.selectbox(
+    "Oraș",
+    chei_orase,
+    index=chei_orase.index(ORAS_IMPLICIT),
+    format_func=lambda cheie: ORASE[cheie].name,
+)
+oras = ORASE[cheie_oras]
+# The container's TZ is Bucharest; "today" must be the chosen city's date.
+zi = c_zi.date_input("Alege ziua", value=datetime.now(oras.tzinfo).date(), format="YYYY-MM-DD")
+info = calculeaza(zi, oras)
+
+st.set_page_config(page_title=f"Daylight — {oras.name}")
+titlu.title(f"☀️ Daylight — {oras.name}")
 
 ore = info.durata.seconds // 3600
 minute = (info.durata.seconds % 3600) // 60
@@ -57,12 +70,13 @@ c5.metric("Față de 21 dec", hhmm(info.dif_fata_de_solst_iarna))
 
 
 @st.cache_data(show_spinner="Calculez curba anuală…")
-def curba_anuala(an: int) -> pd.DataFrame:
+def curba_anuala(cheie_oras: str, an: int) -> pd.DataFrame:
+    oras = ORASE[cheie_oras]
     inceput = date(an, 1, 1)
     nr_zile = (date(an + 1, 1, 1) - inceput).days
     zile = [inceput + timedelta(days=i) for i in range(nr_zile)]
-    secunde = [int(calculeaza(z).durata.total_seconds()) for z in zile]
-    sec_prev = int(calculeaza(inceput - timedelta(days=1)).durata.total_seconds())
+    secunde = [int(calculeaza(z, oras).durata.total_seconds()) for z in zile]
+    sec_prev = int(calculeaza(inceput - timedelta(days=1), oras).durata.total_seconds())
     delta_sec = [s - (secunde[i - 1] if i > 0 else sec_prev) for i, s in enumerate(secunde)]
     ore = [s / 3600 for s in secunde]
     ore_hhmm = [f"{s // 3600}:{(s % 3600) // 60:02d}" for s in secunde]
@@ -81,7 +95,7 @@ def curba_anuala(an: int) -> pd.DataFrame:
     )
 
 
-df = curba_anuala(zi.year)
+df = curba_anuala(cheie_oras, zi.year)
 sec_zi = int(info.durata.total_seconds())
 selectie = pd.DataFrame({
     "data": [zi],
